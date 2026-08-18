@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Search Performance — cedarcreek.tv</title>
+<style>
+  :root { color-scheme: light; }
+
+  .viz-root {
+    --surface-1:      #fcfcfb;
+    --page-plane:     #f9f9f7;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #898781;
+    --gridline:       #e1e0d9;
+    --baseline:       #c3c2b7;
+    --border:         rgba(11,11,11,0.10);
+    --series-1:       #2a78d6;   /* blue — clicks */
+    --series-1-wash:  rgba(42,120,214,0.10);
+    --good-text:      #006300;
+    --card-shadow:    0 1px 2px rgba(11,11,11,0.04);
+  }
+  :root[data-theme="dark"] .viz-root,
+  :root:where(:not([data-theme="light"])) .viz-root {
+    color-scheme: dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) .viz-root {
+      --surface-1:      #1a1a19;
+      --page-plane:     #0d0d0d;
+      --text-primary:   #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted:     #898781;
+      --gridline:       #2c2c2a;
+      --baseline:       #383835;
+      --border:         rgba(255,255,255,0.10);
+      --series-1:       #3987e5;
+      --series-1-wash:  rgba(57,135,229,0.14);
+      --good-text:      #0ca30c;
+      --card-shadow:    0 1px 2px rgba(0,0,0,0.3);
+    }
+  }
+  :root[data-theme="dark"] .viz-root {
+    --surface-1:      #1a1a19;
+    --page-plane:     #0d0d0d;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted:     #898781;
+    --gridline:       #2c2c2a;
+    --baseline:       #383835;
+    --border:         rgba(255,255,255,0.10);
+    --series-1:       #3987e5;
+    --series-1-wash:  rgba(57,135,229,0.14);
+    --good-text:      #0ca30c;
+    --card-shadow:    0 1px 2px rgba(0,0,0,0.3);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  .viz-root {
+    background: var(--page-plane);
+    color: var(--text-primary);
+    min-height: 100vh;
+    padding: 32px 24px 64px;
+  }
+  .wrap { max-width: 1040px; margin: 0 auto; }
+
+  .topbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 4px; }
+  h1 { font-size: 20px; font-weight: 600; margin: 0 0 4px; }
+  .subtitle { font-size: 13px; color: var(--text-secondary); margin: 0; }
+  .theme-toggle {
+    border: 1px solid var(--border);
+    background: var(--surface-1);
+    color: var(--text-secondary);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 12px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .theme-toggle:hover { color: var(--text-primary); }
+
+  .sample-banner {
+    margin-top: 16px;
+    border: 1px solid var(--border);
+    background: var(--surface-1);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    box-shadow: var(--card-shadow);
+  }
+  .sample-banner b { color: var(--text-primary); }
+
+  .range-label { margin: 22px 0 10px; font-size: 12px; color: var(--text-muted); }
+
+  .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  @media (max-width: 780px) { .tiles { grid-template-columns: repeat(2, 1fr); } }
+  .tile {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px 12px;
+    box-shadow: var(--card-shadow);
+  }
+  .tile-label { font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; }
+  .tile-value { font-size: 24px; font-weight: 600; line-height: 1.1; }
+  .tile-delta { font-size: 12px; margin-top: 4px; }
+  .tile-delta.good { color: var(--good-text); }
+  .tile-delta.bad { color: var(--text-secondary); }
+  .tile-spark { display: block; margin-top: 8px; }
+
+  .panel {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px 8px;
+    box-shadow: var(--card-shadow);
+    margin-top: 16px;
+  }
+  .panel-title { font-size: 13px; font-weight: 600; color: var(--text-primary); margin: 0 0 2px; }
+  .panel-sub { font-size: 12px; color: var(--text-muted); margin: 0 0 8px; }
+
+  .chart-wrap { position: relative; }
+  #tooltip {
+    position: absolute;
+    pointer-events: none;
+    background: var(--text-primary);
+    color: var(--page-plane);
+    font-size: 11.5px;
+    padding: 6px 9px;
+    border-radius: 6px;
+    line-height: 1.5;
+    opacity: 0;
+    transform: translate(-50%, -110%);
+    white-space: nowrap;
+    z-index: 5;
+  }
+  :root[data-theme="dark"] #tooltip,
+  :root:where(:not([data-theme="light"])) #tooltip { }
+  @media (prefers-color-scheme: dark) { }
+
+  table { width: 100%; border-collapse: collapse; margin-top: 4px; margin-bottom: 12px; }
+  thead th {
+    text-align: left;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--gridline);
+  }
+  thead th.num, tbody td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tbody td { font-size: 13px; padding: 9px 10px; border-bottom: 1px solid var(--gridline); color: var(--text-primary); }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody td.query { color: var(--text-primary); }
+  tbody td.muted { color: var(--text-secondary); }
+
+  footer { margin-top: 20px; font-size: 11.5px; color: var(--text-muted); text-align: center; }
+</style>
+</head>
+<body>
+<div class="viz-root" id="vizRoot">
+  <div class="wrap">
+
+    <div class="topbar">
+      <div>
+        <h1>Search Performance</h1>
+        <p class="subtitle">cedarcreek.tv · Google Search Console</p>
+      </div>
+      <button class="theme-toggle" id="themeToggle">Dark mode</button>
+    </div>
+
+    <div class="sample-banner">
+      <b>Live export.</b> Pulled from your Search Console property on Aug 18, 2026 (data through Aug 16 —
+      Search Console runs a couple days behind). Re-export and swap the numbers below to refresh.
+    </div>
+
+    <div class="range-label">Last 28 days · vs. previous 28 days</div>
+
+    <div class="tiles" id="tiles"></div>
+
+    <div class="panel">
+      <p class="panel-title">Clicks — last 28 days</p>
+      <p class="panel-sub">Daily clicks from Google Search results</p>
+      <div class="chart-wrap">
+        <svg id="mainChart" width="100%" viewBox="0 0 960 260" preserveAspectRatio="none"></svg>
+        <div id="tooltip"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <p class="panel-title">Top queries</p>
+      <p class="panel-sub">Ranked by clicks, last 28 days</p>
+      <table id="queryTable">
+        <thead>
+          <tr>
+            <th>Query</th>
+            <th class="num">Clicks</th>
+            <th class="num">Impressions</th>
+            <th class="num">CTR</th>
+            <th class="num">Avg. position</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <footer>Source: Search Console performance export, cedarcreek.tv (sc-domain property) · exported Aug 18, 2026</footer>
+  </div>
+</div>
+
+<script>
+(function () {
+  // ---------- theme toggle ----------
+  var root = document.documentElement;
+  var btn = document.getElementById('themeToggle');
+  function currentTheme() {
+    return root.getAttribute('data-theme') ||
+      (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  }
+  function applyLabel() {
+    btn.textContent = currentTheme() === 'dark' ? 'Light mode' : 'Dark mode';
+  }
+  btn.addEventListener('click', function () {
+    root.setAttribute('data-theme', currentTheme() === 'dark' ? 'light' : 'dark');
+    applyLabel();
+    render(); // redraw chart with theme-correct colors
+  });
+  applyLabel();
+
+  function cssVar(name) {
+    return getComputedStyle(document.getElementById('vizRoot')).getPropertyValue(name).trim();
+  }
+
+  // ---------- real data: Search Console export, cedarcreek.tv, last 28 days (through Aug 16, 2026) ----------
+  var daily = [
+    ["2026-07-20", 99, 2101, 0.0471, 8.5], ["2026-07-21", 96, 2172, 0.0442, 7.5], ["2026-07-22", 101, 2405, 0.0420, 6.9],
+    ["2026-07-23", 71, 2260, 0.0314, 6.7], ["2026-07-24", 93, 2344, 0.0397, 7.5], ["2026-07-25", 222, 2687, 0.0826, 7.8],
+    ["2026-07-26", 454, 3387, 0.1340, 6.8], ["2026-07-27", 116, 2447, 0.0474, 9.0], ["2026-07-28", 94, 2262, 0.0416, 9.4],
+    ["2026-07-29", 81, 2271, 0.0357, 9.0], ["2026-07-30", 68, 2448, 0.0278, 9.7], ["2026-07-31", 76, 2117, 0.0359, 9.3],
+    ["2026-08-01", 237, 2404, 0.0986, 8.0], ["2026-08-02", 551, 3495, 0.1577, 6.7], ["2026-08-03", 119, 2775, 0.0429, 8.7],
+    ["2026-08-04", 90, 2443, 0.0368, 7.8], ["2026-08-05", 119, 2437, 0.0488, 8.5], ["2026-08-06", 104, 2302, 0.0452, 8.3],
+    ["2026-08-07", 89, 2400, 0.0371, 7.7], ["2026-08-08", 238, 2568, 0.0927, 6.5], ["2026-08-09", 425, 3454, 0.1230, 6.4],
+    ["2026-08-10", 83, 2508, 0.0331, 9.2], ["2026-08-11", 79, 2619, 0.0302, 7.5], ["2026-08-12", 102, 2616, 0.0390, 7.7],
+    ["2026-08-13", 65, 2711, 0.0240, 9.7], ["2026-08-14", 74, 2171, 0.0341, 8.5], ["2026-08-15", 219, 2557, 0.0856, 8.2],
+    ["2026-08-16", 500, 3372, 0.1483, 6.8]
+  ];
+
+  var days = daily.map(function (r) { return new Date(r[0] + 'T00:00:00'); });
+  var clicks = daily.map(function (r) { return r[1]; });
+  var impressions = daily.map(function (r) { return r[2]; });
+  var ctrSeries = daily.map(function (r) { return r[3]; });
+  var posSeries = daily.map(function (r) { return r[4]; });
+
+  var totalClicks = clicks.reduce(function (a, b) { return a + b; }, 0);       // 4,665
+  var totalImpr = impressions.reduce(function (a, b) { return a + b; }, 0);     // 71,733
+  var avgCtr = totalClicks / totalImpr;                                        // 6.5%
+  var avgPos = 7.9;                                                            // from Search Console summary
+
+  // Previous 28-day period, via Search Console's built-in "Compare" view
+  var prev = { clicks: 4680, impr: 288000, ctr: 0.016, pos: 15.6 };
+
+  function fmtCompact(n) {
+    if (n >= 1000) return (n / 1000).toFixed(n >= 10000 ? 0 : 1) + 'K';
+    return String(n);
+  }
+  function fmtPct(n) { return (n * 100).toFixed(1) + '%'; }
+  function fmtSigned(n, digits) {
+    var s = n.toFixed(digits);
+    return (n >= 0 ? '+' : '') + s;
+  }
+
+  function sample12(arr) {
+    var out = [];
+    for (var i = 0; i < 12; i++) {
+      var idx = Math.round(i * (arr.length - 1) / 11);
+      out.push(arr[idx]);
+    }
+    return out;
+  }
+
+  var clicksDeltaPct = (totalClicks - prev.clicks) / prev.clicks * 100;
+  var imprDeltaPct = (totalImpr - prev.impr) / prev.impr * 100;
+  var ctrDeltaPp = (avgCtr - prev.ctr) * 100;
+  var posDelta = avgPos - prev.pos; // negative = better (higher on the results page)
+
+  var tileDefs = [
+    { label: 'Total clicks', value: totalClicks.toLocaleString(), delta: fmtSigned(clicksDeltaPct, 1) + '% vs prior 28d', good: clicksDeltaPct >= 0, spark: sample12(clicks) },
+    { label: 'Total impressions', value: fmtCompact(totalImpr), delta: fmtSigned(imprDeltaPct, 1) + '% vs prior 28d', good: imprDeltaPct >= 0, spark: sample12(impressions) },
+    { label: 'Average CTR', value: fmtPct(avgCtr), delta: fmtSigned(ctrDeltaPp, 1) + 'pp vs prior 28d', good: ctrDeltaPp >= 0, spark: sample12(ctrSeries) },
+    { label: 'Average position', value: avgPos.toFixed(1), delta: fmtSigned(posDelta, 1) + ' vs prior 28d' + (posDelta < 0 ? ' (better)' : ''), good: posDelta <= 0, spark: sample12(posSeries) }
+  ];
+
+  // Top queries — real, from the same export (last 28 days)
+  var queries = [
+    { q: 'cedar creek church',                   clicks: 1005, impr: 2036, pos: 2.13 },
+    { q: 'cedar creek',                          clicks: 241,  impr: 1784, pos: 5.48 },
+    { q: 'cedar creek church perrysburg',        clicks: 163,  impr: 355,  pos: 3.55 },
+    { q: 'cedar creek perrysburg',               clicks: 146,  impr: 273,  pos: 6.60 },
+    { q: 'cedarcreek church',                    clicks: 125,  impr: 267,  pos: 2.89 },
+    { q: 'cedar creek church perrysburg ohio',   clicks: 77,   impr: 187,  pos: 1.34 },
+    { q: 'cedar creek findlay',                  clicks: 62,   impr: 102,  pos: 5.48 },
+    { q: 'cedar creek church live stream',       clicks: 47,   impr: 98,   pos: 3.34 }
+  ];
+
+  // ---------- stat tiles ----------
+  var tilesEl = document.getElementById('tiles');
+  tilesEl.innerHTML = tileDefs.map(function (t, idx) {
+    return '<div class="tile">' +
+      '<div class="tile-label">' + t.label + '</div>' +
+      '<div class="tile-value">' + t.value + '</div>' +
+      '<div class="tile-delta ' + (t.good ? 'good' : 'bad') + '">' + t.delta + '</div>' +
+      '<svg class="tile-spark" data-idx="' + idx + '" width="100%" height="28" viewBox="0 0 120 28" preserveAspectRatio="none"></svg>' +
+      '</div>';
+  }).join('');
+
+  function drawSparkline(svg, data) {
+    var w = 120, h = 28, pad = 3;
+    var min = Math.min.apply(null, data), max = Math.max.apply(null, data);
+    if (min === max) { max = min + 1; }
+    var stepX = (w - pad * 2) / (data.length - 1);
+    var pts = data.map(function (v, i) {
+      var x = pad + i * stepX;
+      var y = h - pad - ((v - min) / (max - min)) * (h - pad * 2);
+      return [x, y];
+    });
+    var path = pts.map(function (p, i) { return (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' ');
+    var color = cssVar('--series-1');
+    var last = pts[pts.length - 1];
+    svg.innerHTML =
+      '<path d="' + path + '" fill="none" stroke="' + color + '" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>' +
+      '<circle cx="' + last[0].toFixed(1) + '" cy="' + last[1].toFixed(1) + '" r="2.5" fill="' + color + '"/>';
+  }
+
+  // ---------- top queries table ----------
+  var tbody = document.querySelector('#queryTable tbody');
+  tbody.innerHTML = queries.map(function (r) {
+    var ctr = r.clicks / r.impr;
+    return '<tr>' +
+      '<td class="query">' + r.q + '</td>' +
+      '<td class="num">' + r.clicks.toLocaleString() + '</td>' +
+      '<td class="num muted">' + r.impr.toLocaleString() + '</td>' +
+      '<td class="num muted">' + fmtPct(ctr) + '</td>' +
+      '<td class="num muted">' + r.pos.toFixed(1) + '</td>' +
+      '</tr>';
+  }).join('');
+
+  // ---------- main line chart ----------
+  var svg = document.getElementById('mainChart');
+  var tooltip = document.getElementById('tooltip');
+  var W = 960, H = 260;
+  var padL = 34, padR = 8, padT = 14, padB = 26;
+
+  function render() {
+    // redraw sparklines (theme-dependent color)
+    document.querySelectorAll('.tile-spark').forEach(function (el) {
+      drawSparkline(el, tileDefs[+el.dataset.idx].spark);
+    });
+
+    var color = cssVar('--series-1');
+    var wash = cssVar('--series-1-wash');
+    var grid = cssVar('--gridline');
+    var baseline = cssVar('--baseline');
+    var muted = cssVar('--text-muted');
+
+    var max = Math.max.apply(null, clicks);
+    var niceMax = Math.ceil(max / 20) * 20;
+    var plotW = W - padL - padR;
+    var plotH = H - padT - padB;
+    var stepX = plotW / (clicks.length - 1);
+
+    function xAt(i) { return padL + i * stepX; }
+    function yAt(v) { return padT + plotH - (v / niceMax) * plotH; }
+
+    var linePts = clicks.map(function (v, i) { return [xAt(i), yAt(v)]; });
+    var linePath = linePts.map(function (p, i) { return (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' ');
+    var areaPath = linePath + ' L' + xAt(clicks.length - 1).toFixed(1) + ',' + yAt(0).toFixed(1) +
+      ' L' + xAt(0).toFixed(1) + ',' + yAt(0).toFixed(1) + ' Z';
+
+    // gridlines: 4 horizontal steps
+    var gridLines = '';
+    var ticks = 4;
+    for (var g = 0; g <= ticks; g++) {
+      var v = (niceMax / ticks) * g;
+      var y = yAt(v);
+      gridLines += '<line x1="' + padL + '" y1="' + y.toFixed(1) + '" x2="' + (W - padR) + '" y2="' + y.toFixed(1) + '" stroke="' + grid + '" stroke-width="1"/>';
+      gridLines += '<text x="' + (padL - 8) + '" y="' + (y + 4).toFixed(1) + '" text-anchor="end" font-size="10.5" fill="' + muted + '" font-family="system-ui, sans-serif">' + Math.round(v).toLocaleString() + '</text>';
+    }
+
+    // x-axis labels: every ~7 days
+    var xLabels = '';
+    for (var i = 0; i < days.length; i += 7) {
+      var lbl = days[i].toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      xLabels += '<text x="' + xAt(i).toFixed(1) + '" y="' + (H - 6) + '" text-anchor="middle" font-size="10.5" fill="' + muted + '" font-family="system-ui, sans-serif">' + lbl + '</text>';
+    }
+
+    svg.innerHTML =
+      '<g>' + gridLines + '</g>' +
+      '<line x1="' + padL + '" y1="' + (H - padB) + '" x2="' + (W - padR) + '" y2="' + (H - padB) + '" stroke="' + baseline + '" stroke-width="1"/>' +
+      '<path d="' + areaPath + '" fill="' + wash + '" stroke="none"/>' +
+      '<path d="' + linePath + '" fill="none" stroke="' + color + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
+      '<circle id="hoverDot" cx="0" cy="0" r="4" fill="' + color + '" stroke="' + cssVar('--surface-1') + '" stroke-width="2" style="opacity:0"/>' +
+      '<line id="hoverLine" x1="0" y1="' + padT + '" x2="0" y2="' + (H - padB) + '" stroke="' + baseline + '" stroke-width="1" style="opacity:0"/>' +
+      '<g>' + xLabels + '</g>' +
+      '<rect id="hitRect" x="' + padL + '" y="' + padT + '" width="' + plotW + '" height="' + plotH + '" fill="transparent"/>';
+
+    var hitRect = svg.querySelector('#hitRect');
+    var hoverDot = svg.querySelector('#hoverDot');
+    var hoverLine = svg.querySelector('#hoverLine');
+
+    function handleMove(evt) {
+      var rect = svg.getBoundingClientRect();
+      var scaleX = W / rect.width;
+      var mx = (evt.clientX - rect.left) * scaleX;
+      var idx = Math.round((mx - padL) / stepX);
+      idx = Math.max(0, Math.min(clicks.length - 1, idx));
+      var px = xAt(idx), py = yAt(clicks[idx]);
+      hoverDot.setAttribute('cx', px.toFixed(1));
+      hoverDot.setAttribute('cy', py.toFixed(1));
+      hoverDot.style.opacity = 1;
+      hoverLine.setAttribute('x1', px.toFixed(1));
+      hoverLine.setAttribute('x2', px.toFixed(1));
+      hoverLine.style.opacity = 1;
+
+      var wrapRect = svg.parentElement.getBoundingClientRect();
+      var tx = rect.left - wrapRect.left + px / scaleX;
+      var ty = rect.top - wrapRect.top + py / scaleX;
+      tooltip.style.left = tx + 'px';
+      tooltip.style.top = ty + 'px';
+      tooltip.style.opacity = 1;
+      tooltip.innerHTML = '<div>' + days[idx].toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + '</div>' +
+        '<div><b>' + clicks[idx].toLocaleString() + '</b> clicks &middot; ' + impressions[idx].toLocaleString() + ' impr.</div>';
+    }
+    function handleLeave() {
+      hoverDot.style.opacity = 0;
+      hoverLine.style.opacity = 0;
+      tooltip.style.opacity = 0;
+    }
+    hitRect.addEventListener('mousemove', handleMove);
+    hitRect.addEventListener('mouseleave', handleLeave);
+  }
+
+  render();
+  window.addEventListener('resize', render);
+})();
+</script>
+</body>
+</html>
