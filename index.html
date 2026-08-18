@@ -6,7 +6,6 @@
 <title>Search Performance — cedarcreek.tv</title>
 <style>
   :root { color-scheme: light; }
-
   .viz-root {
     --surface-1:      #fcfcfb;
     --page-plane:     #f9f9f7;
@@ -55,7 +54,6 @@
     --good-text:      #0ca30c;
     --card-shadow:    0 1px 2px rgba(0,0,0,0.3);
   }
-
   * { box-sizing: border-box; }
   body {
     margin: 0;
@@ -68,13 +66,11 @@
     padding: 32px 24px 64px;
   }
   .wrap { max-width: 100%; margin: 0; }
-
   .topbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 4px; }
   h1 { font-size: 20px; font-weight: 600; margin: 0 0 4px; }
   .subtitle { font-size: 13px; color: var(--text-secondary); margin: 0; }
   .subtitle a { color: var(--text-secondary); text-decoration: underline; text-underline-offset: 2px; }
   .subtitle a:hover { color: var(--text-primary); }
-
   .sample-banner {
     margin-top: 16px;
     border: 1px solid var(--border);
@@ -86,9 +82,7 @@
     box-shadow: var(--card-shadow);
   }
   .sample-banner b { color: var(--text-primary); }
-
   .range-label { margin: 22px 0 10px; font-size: 12px; color: var(--text-muted); }
-
   .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
   @media (max-width: 780px) { .tiles { grid-template-columns: repeat(2, 1fr); } }
   .tile {
@@ -104,7 +98,6 @@
   .tile-delta.good { color: var(--good-text); }
   .tile-delta.bad { color: var(--text-secondary); }
   .tile-spark { display: block; margin-top: 8px; }
-
   .panel {
     background: var(--surface-1);
     border: 1px solid var(--border);
@@ -115,7 +108,6 @@
   }
   .panel-title { font-size: 13px; font-weight: 600; color: var(--text-primary); margin: 0 0 2px; }
   .panel-sub { font-size: 12px; color: var(--text-muted); margin: 0 0 8px; }
-
   .chart-wrap { position: relative; }
   #tooltip {
     position: absolute;
@@ -134,7 +126,6 @@
   :root[data-theme="dark"] #tooltip,
   :root:where(:not([data-theme="light"])) #tooltip { }
   @media (prefers-color-scheme: dark) { }
-
   table { width: 100%; border-collapse: collapse; margin-top: 4px; margin-bottom: 12px; }
   thead th {
     text-align: left;
@@ -151,30 +142,21 @@
   tbody tr:last-child td { border-bottom: none; }
   tbody td.query { color: var(--text-primary); }
   tbody td.muted { color: var(--text-secondary); }
-
   footer { margin-top: 20px; font-size: 11.5px; color: var(--text-muted); text-align: center; }
 </style>
 </head>
 <body>
 <div class="viz-root" id="vizRoot">
   <div class="wrap">
-
     <div class="topbar">
       <div>
         <h1>Search Performance</h1>
         <p class="subtitle"><a href="https://www.cedarcreek.tv" target="_blank" rel="noopener">cedarcreek.tv</a> · Google Search Console</p>
       </div>
     </div>
-
-    <div class="sample-banner">
-      <b>Live export.</b> Pulled from your Search Console property on Aug 18, 2026 (data through Aug 16 —
-      Search Console runs a couple days behind). Re-export and swap the numbers below to refresh.
-    </div>
-
+    <div class="sample-banner">Last updated: August 18, 2026 at 12:02 PM ET</div>
     <div class="range-label">Last 28 days · vs. previous 28 days</div>
-
     <div class="tiles" id="tiles"></div>
-
     <div class="panel">
       <p class="panel-title">Clicks — last 28 days</p>
       <p class="panel-sub">Daily clicks from Google Search results</p>
@@ -183,7 +165,6 @@
         <div id="tooltip"></div>
       </div>
     </div>
-
     <div class="panel">
       <p class="panel-title">Top queries</p>
       <p class="panel-sub">Ranked by clicks, last 28 days</p>
@@ -200,16 +181,13 @@
         <tbody></tbody>
       </table>
     </div>
-
   </div>
 </div>
-
 <script>
 (function () {
   function cssVar(name) {
     return getComputedStyle(document.getElementById('vizRoot')).getPropertyValue(name).trim();
   }
-
   // ---------- real data: Search Console export, cedarcreek.tv, last 28 days (through Aug 16, 2026) ----------
   var daily = [
     ["2026-07-20", 99, 2101, 0.0471, 8.5], ["2026-07-21", 96, 2172, 0.0442, 7.5], ["2026-07-22", 101, 2405, 0.0420, 6.9],
@@ -223,21 +201,17 @@
     ["2026-08-13", 65, 2711, 0.0240, 9.7], ["2026-08-14", 74, 2171, 0.0341, 8.5], ["2026-08-15", 219, 2557, 0.0856, 8.2],
     ["2026-08-16", 500, 3372, 0.1483, 6.8]
   ];
-
   var days = daily.map(function (r) { return new Date(r[0] + 'T00:00:00'); });
   var clicks = daily.map(function (r) { return r[1]; });
   var impressions = daily.map(function (r) { return r[2]; });
   var ctrSeries = daily.map(function (r) { return r[3]; });
   var posSeries = daily.map(function (r) { return r[4]; });
-
   var totalClicks = clicks.reduce(function (a, b) { return a + b; }, 0);       // 4,665
   var totalImpr = impressions.reduce(function (a, b) { return a + b; }, 0);     // 71,733
   var avgCtr = totalClicks / totalImpr;                                        // 6.5%
   var avgPos = 7.9;                                                            // from Search Console summary
-
   // Previous 28-day period, via Search Console's built-in "Compare" view
   var prev = { clicks: 4680, impr: 288000, ctr: 0.016, pos: 15.6 };
-
   function fmtCompact(n) {
     if (n >= 1000) return (n / 1000).toFixed(n >= 10000 ? 0 : 1) + 'K';
     return String(n);
@@ -247,7 +221,6 @@
     var s = n.toFixed(digits);
     return (n >= 0 ? '+' : '') + s;
   }
-
   function sample12(arr) {
     var out = [];
     for (var i = 0; i < 12; i++) {
@@ -256,19 +229,16 @@
     }
     return out;
   }
-
   var clicksDeltaPct = (totalClicks - prev.clicks) / prev.clicks * 100;
   var imprDeltaPct = (totalImpr - prev.impr) / prev.impr * 100;
   var ctrDeltaPp = (avgCtr - prev.ctr) * 100;
   var posDelta = avgPos - prev.pos; // negative = better (higher on the results page)
-
   var tileDefs = [
     { label: 'Total clicks', value: totalClicks.toLocaleString(), delta: fmtSigned(clicksDeltaPct, 1) + '% vs prior 28d', good: clicksDeltaPct >= 0, spark: sample12(clicks) },
     { label: 'Total impressions', value: fmtCompact(totalImpr), delta: fmtSigned(imprDeltaPct, 1) + '% vs prior 28d', good: imprDeltaPct >= 0, spark: sample12(impressions) },
     { label: 'Average CTR', value: fmtPct(avgCtr), delta: fmtSigned(ctrDeltaPp, 1) + 'pp vs prior 28d', good: ctrDeltaPp >= 0, spark: sample12(ctrSeries) },
     { label: 'Average position', value: avgPos.toFixed(1), delta: fmtSigned(posDelta, 1) + ' vs prior 28d' + (posDelta < 0 ? ' (better)' : ''), good: posDelta <= 0, spark: sample12(posSeries) }
   ];
-
   // Top queries — real, from the same export (last 28 days)
   var queries = [
     { q: 'cedar creek church',                   clicks: 1005, impr: 2036, pos: 2.13 },
@@ -280,7 +250,6 @@
     { q: 'cedar creek findlay',                  clicks: 62,   impr: 102,  pos: 5.48 },
     { q: 'cedar creek church live stream',       clicks: 47,   impr: 98,   pos: 3.34 }
   ];
-
   // ---------- stat tiles ----------
   var tilesEl = document.getElementById('tiles');
   tilesEl.innerHTML = tileDefs.map(function (t, idx) {
@@ -291,9 +260,13 @@
       '<svg class="tile-spark" data-idx="' + idx + '" width="100%" height="28" viewBox="0 0 120 28" preserveAspectRatio="none"></svg>' +
       '</div>';
   }).join('');
-
   function drawSparkline(svg, data) {
-    var w = 120, h = 28, pad = 3;
+    // Measure the actual rendered width so the viewBox matches 1:1 — otherwise
+    // width:100% stretching against a fixed viewBox (with preserveAspectRatio="none")
+    // scales x and y unevenly and turns the round end-dot into an oval.
+    var w = svg.getBoundingClientRect().width || 120;
+    var h = 28, pad = 3;
+    svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
     var min = Math.min.apply(null, data), max = Math.max.apply(null, data);
     if (min === max) { max = min + 1; }
     var stepX = (w - pad * 2) / (data.length - 1);
@@ -309,7 +282,6 @@
       '<path d="' + path + '" fill="none" stroke="' + color + '" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>' +
       '<circle cx="' + last[0].toFixed(1) + '" cy="' + last[1].toFixed(1) + '" r="2.5" fill="' + color + '"/>';
   }
-
   // ---------- top queries table ----------
   var tbody = document.querySelector('#queryTable tbody');
   tbody.innerHTML = queries.map(function (r) {
@@ -322,39 +294,32 @@
       '<td class="num muted">' + r.pos.toFixed(1) + '</td>' +
       '</tr>';
   }).join('');
-
   // ---------- main line chart ----------
   var svg = document.getElementById('mainChart');
   var tooltip = document.getElementById('tooltip');
   var W = 960, H = 260;
   var padL = 34, padR = 8, padT = 14, padB = 26;
-
   function render() {
     // redraw sparklines (theme-dependent color)
     document.querySelectorAll('.tile-spark').forEach(function (el) {
       drawSparkline(el, tileDefs[+el.dataset.idx].spark);
     });
-
     var color = cssVar('--series-1');
     var wash = cssVar('--series-1-wash');
     var grid = cssVar('--gridline');
     var baseline = cssVar('--baseline');
     var muted = cssVar('--text-muted');
-
     var max = Math.max.apply(null, clicks);
     var niceMax = Math.ceil(max / 20) * 20;
     var plotW = W - padL - padR;
     var plotH = H - padT - padB;
     var stepX = plotW / (clicks.length - 1);
-
     function xAt(i) { return padL + i * stepX; }
     function yAt(v) { return padT + plotH - (v / niceMax) * plotH; }
-
     var linePts = clicks.map(function (v, i) { return [xAt(i), yAt(v)]; });
     var linePath = linePts.map(function (p, i) { return (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' ');
     var areaPath = linePath + ' L' + xAt(clicks.length - 1).toFixed(1) + ',' + yAt(0).toFixed(1) +
       ' L' + xAt(0).toFixed(1) + ',' + yAt(0).toFixed(1) + ' Z';
-
     // gridlines: 4 horizontal steps
     var gridLines = '';
     var ticks = 4;
@@ -364,14 +329,12 @@
       gridLines += '<line x1="' + padL + '" y1="' + y.toFixed(1) + '" x2="' + (W - padR) + '" y2="' + y.toFixed(1) + '" stroke="' + grid + '" stroke-width="1"/>';
       gridLines += '<text x="' + (padL - 8) + '" y="' + (y + 4).toFixed(1) + '" text-anchor="end" font-size="10.5" fill="' + muted + '" font-family="system-ui, sans-serif">' + Math.round(v).toLocaleString() + '</text>';
     }
-
     // x-axis labels: every ~7 days
     var xLabels = '';
     for (var i = 0; i < days.length; i += 7) {
       var lbl = days[i].toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
       xLabels += '<text x="' + xAt(i).toFixed(1) + '" y="' + (H - 6) + '" text-anchor="middle" font-size="10.5" fill="' + muted + '" font-family="system-ui, sans-serif">' + lbl + '</text>';
     }
-
     svg.innerHTML =
       '<g>' + gridLines + '</g>' +
       '<line x1="' + padL + '" y1="' + (H - padB) + '" x2="' + (W - padR) + '" y2="' + (H - padB) + '" stroke="' + baseline + '" stroke-width="1"/>' +
@@ -381,11 +344,9 @@
       '<line id="hoverLine" x1="0" y1="' + padT + '" x2="0" y2="' + (H - padB) + '" stroke="' + baseline + '" stroke-width="1" style="opacity:0"/>' +
       '<g>' + xLabels + '</g>' +
       '<rect id="hitRect" x="' + padL + '" y="' + padT + '" width="' + plotW + '" height="' + plotH + '" fill="transparent"/>';
-
     var hitRect = svg.querySelector('#hitRect');
     var hoverDot = svg.querySelector('#hoverDot');
     var hoverLine = svg.querySelector('#hoverLine');
-
     function handleMove(evt) {
       var rect = svg.getBoundingClientRect();
       var scaleX = W / rect.width;
@@ -399,7 +360,6 @@
       hoverLine.setAttribute('x1', px.toFixed(1));
       hoverLine.setAttribute('x2', px.toFixed(1));
       hoverLine.style.opacity = 1;
-
       var wrapRect = svg.parentElement.getBoundingClientRect();
       var tx = rect.left - wrapRect.left + px / scaleX;
       var ty = rect.top - wrapRect.top + py / scaleX;
@@ -417,7 +377,6 @@
     hitRect.addEventListener('mousemove', handleMove);
     hitRect.addEventListener('mouseleave', handleLeave);
   }
-
   render();
   window.addEventListener('resize', render);
   if (window.matchMedia) {
