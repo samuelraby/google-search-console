@@ -67,22 +67,13 @@
     min-height: 100vh;
     padding: 32px 24px 64px;
   }
-  .wrap { max-width: 1040px; margin: 0 auto; }
+  .wrap { max-width: 100%; margin: 0; }
 
   .topbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 4px; }
   h1 { font-size: 20px; font-weight: 600; margin: 0 0 4px; }
   .subtitle { font-size: 13px; color: var(--text-secondary); margin: 0; }
-  .theme-toggle {
-    border: 1px solid var(--border);
-    background: var(--surface-1);
-    color: var(--text-secondary);
-    border-radius: 8px;
-    padding: 6px 12px;
-    font-size: 12px;
-    cursor: pointer;
-    white-space: nowrap;
-  }
-  .theme-toggle:hover { color: var(--text-primary); }
+  .subtitle a { color: var(--text-secondary); text-decoration: underline; text-underline-offset: 2px; }
+  .subtitle a:hover { color: var(--text-primary); }
 
   .sample-banner {
     margin-top: 16px;
@@ -171,9 +162,8 @@
     <div class="topbar">
       <div>
         <h1>Search Performance</h1>
-        <p class="subtitle">cedarcreek.tv · Google Search Console</p>
+        <p class="subtitle"><a href="https://www.cedarcreek.tv" target="_blank" rel="noopener">cedarcreek.tv</a> · Google Search Console</p>
       </div>
-      <button class="theme-toggle" id="themeToggle">Dark mode</button>
     </div>
 
     <div class="sample-banner">
@@ -211,29 +201,11 @@
       </table>
     </div>
 
-    <footer>Source: Search Console performance export, cedarcreek.tv (sc-domain property) · exported Aug 18, 2026</footer>
   </div>
 </div>
 
 <script>
 (function () {
-  // ---------- theme toggle ----------
-  var root = document.documentElement;
-  var btn = document.getElementById('themeToggle');
-  function currentTheme() {
-    return root.getAttribute('data-theme') ||
-      (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-  }
-  function applyLabel() {
-    btn.textContent = currentTheme() === 'dark' ? 'Light mode' : 'Dark mode';
-  }
-  btn.addEventListener('click', function () {
-    root.setAttribute('data-theme', currentTheme() === 'dark' ? 'light' : 'dark');
-    applyLabel();
-    render(); // redraw chart with theme-correct colors
-  });
-  applyLabel();
-
   function cssVar(name) {
     return getComputedStyle(document.getElementById('vizRoot')).getPropertyValue(name).trim();
   }
@@ -448,6 +420,9 @@
 
   render();
   window.addEventListener('resize', render);
+  if (window.matchMedia) {
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', render);
+  }
 })();
 </script>
 </body>
